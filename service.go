@@ -29,7 +29,7 @@ type Service struct {
 	Port           int              `json:"port"`
 	Timeout        int              `json:"timeout"`
 	VerifySSL      bool             `json:"verifySSL"`
-	Headers        *string          `json:"headers"`
+	Headers        []string         `json:"headers"`
 	CreatedAt      time.Time        `json:"createdAt"`
 	UpdatedAt      time.Time        `json:"updatedAt"`
 	Online         bool             `json:"online"`
@@ -227,15 +227,10 @@ func (s *Service) CheckHTTP() {
 	var content []byte
 	var res *http.Response
 
-	var headers []string
-	if s.Headers != nil {
-		headers = strings.Split(*s.Headers, ",")
-	}
-
 	if s.Method == "POST" {
-		content, res, err = HttpRequest(s.Address, s.Method, "application/json", headers, bytes.NewBuffer([]byte(s.PostData)), timeout, s.VerifySSL)
+		content, res, err = HttpRequest(s.Address, s.Method, "application/json", s.Headers, bytes.NewBuffer([]byte(s.PostData)), timeout, s.VerifySSL)
 	} else {
-		content, res, err = HttpRequest(s.Address, s.Method, nil, headers, nil, timeout, s.VerifySSL)
+		content, res, err = HttpRequest(s.Address, s.Method, nil, s.Headers, nil, timeout, s.VerifySSL)
 	}
 	if err != nil {
 		s.Failure(fmt.Sprintf("HTTP Error %v", err))
