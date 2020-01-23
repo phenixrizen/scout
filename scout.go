@@ -12,7 +12,7 @@ type Scout struct {
 	Services  map[uuid.UUID]*Service
 	Responses chan interface{}
 	Running   bool
-	Logger    *logrus.Logger
+	Logger    logrus.FieldLogger
 }
 
 type ServiceSuccess struct {
@@ -31,16 +31,16 @@ type ServiceFailure struct {
 }
 
 // NewScout returns a scout
-func NewScout(servs []*Service, log *logrus.Logger) *Scout {
+func NewScout(servs []*Service, log logrus.FieldLogger) *Scout {
 	if log == nil {
-		log = logrus.New()
+		return nil
 	}
 	servMap := make(map[uuid.UUID]*Service)
 	resp := make(chan interface{})
 	for i, serv := range servs {
 		serv.Responses = resp
 		if serv.Logger == nil {
-			serv.Logger = logrus.New()
+			serv.Logger = log
 		}
 		serv.Initialize()
 		servMap[serv.Id] = servs[i]

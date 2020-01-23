@@ -17,33 +17,33 @@ import (
 
 // Service is the main struct for Services
 type Service struct {
-	Id             uuid.UUID        `json:"id"`
-	Name           string           `json:"name"`
-	Address        string           `json:"address"`
-	Expected       string           `json:"expected"`
-	ExpectedStatus int              `json:"expectedStatus"`
-	Interval       int              `json:"checkInterval"`
-	Type           string           `json:"type"`
-	Method         string           `json:"method"`
-	PostData       string           `json:"postData"`
-	Port           int              `json:"port"`
-	Timeout        int              `json:"timeout"`
-	VerifySSL      bool             `json:"verifySSL"`
-	Headers        []string         `json:"headers"`
-	CreatedAt      time.Time        `json:"createdAt"`
-	UpdatedAt      time.Time        `json:"updatedAt"`
-	Online         bool             `json:"online"`
-	Latency        float64          `json:"latency"`
-	PingTime       float64          `json:"pingTime"`
-	Running        chan bool        `json:"-"`
-	Checkpoint     time.Time        `json:"-"`
-	SleepDuration  time.Duration    `json:"-"`
-	LastResponse   string           `json:"-"`
-	DownText       string           `json:"-"`
-	LastStatusCode int              `json:"statusCode"`
-	LastOnline     time.Time        `json:"lastSuccess"`
-	Logger         *logrus.Logger   `json:"-"`
-	Responses      chan interface{} `json:"-"`
+	Id             uuid.UUID          `json:"id"`
+	Name           string             `json:"name"`
+	Address        string             `json:"address"`
+	Expected       string             `json:"expected"`
+	ExpectedStatus int                `json:"expectedStatus"`
+	Interval       int                `json:"checkInterval"`
+	Type           string             `json:"type"`
+	Method         string             `json:"method"`
+	PostData       string             `json:"postData"`
+	Port           int                `json:"port"`
+	Timeout        int                `json:"timeout"`
+	VerifySSL      bool               `json:"verifySSL"`
+	Headers        []string           `json:"headers"`
+	CreatedAt      time.Time          `json:"createdAt"`
+	UpdatedAt      time.Time          `json:"updatedAt"`
+	Online         bool               `json:"online"`
+	Latency        float64            `json:"latency"`
+	PingTime       float64            `json:"pingTime"`
+	Running        chan bool          `json:"-"`
+	Checkpoint     time.Time          `json:"-"`
+	SleepDuration  time.Duration      `json:"-"`
+	LastResponse   string             `json:"-"`
+	DownText       string             `json:"-"`
+	LastStatusCode int                `json:"statusCode"`
+	LastOnline     time.Time          `json:"lastSuccess"`
+	Logger         logrus.FieldLogger `json:"-"`
+	Responses      chan interface{}   `json:"-"`
 }
 
 // Initialize a Service
