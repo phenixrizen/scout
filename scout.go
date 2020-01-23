@@ -14,7 +14,7 @@ type Scout struct {
 	Responses chan interface{}
 	Running   bool
 	Logger    logrus.FieldLogger
-	mux       *sync.RWMutex
+	mux       sync.RWMutex
 }
 
 type ServiceSuccess struct {
