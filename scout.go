@@ -58,7 +58,7 @@ func NewScout(servs []*Service, log logrus.FieldLogger) *Scout {
 func (s *Scout) AddService(serv *Service) {
 	if serv != nil && serv.Id != uuid.Nil {
 		serv.Responses = s.Responses
-		serv.Logger = logrus.New()
+		serv.Logger = s.Logger
 		s.Services[serv.Id] = serv
 		if s.Running {
 			go serv.Scout()
