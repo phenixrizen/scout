@@ -50,7 +50,7 @@ func TestScout(t *testing.T) {
 	s := NewScout(servs, log)
 	assert.NotNil(s)
 
-	go s.StartScoutingServices()
-	s.HandleResponses()
+	// go s.CheckServices()
+	//# s.HandleResponses()
 
 }
