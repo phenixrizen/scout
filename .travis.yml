@@ -1,0 +1,18 @@
+language: go
+go:
+- 1.x
+- 1.11.x
+- 1.12.x
+- 1.13.x
+before_install:
+- go get golang.org/x/tools/cmd/cover
+- go get github.com/mattn/goveralls
+script:
+- make
+- go test -v -covermode=count -coverprofile=coverage.out
+- "$HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken
+  $COVERALLS_TOKEN"
+env:
+  global:
+  - GO111MODULE=on
+  - secure: mGNq4feSfE9BzOfJJcmC8OLMvp3cGk2QSOXuBpSX8d/qniH0JVEv0vInzhF0HhLGIWKkGSIVGIB3vS1q+r7Igjhu3n+E6fF0z1rKSO6YburOpdk+E2o+ap1UR4VITta4MxZpENNfD9CNS+6SYcyNi+Uqz6R4HX7OM2Qw3qgI7hrPfWi12CmnuI5Yplb5MVa/GCDWyB2Luu8RjQFPrSMf6qOXzoDXm+V1Zgyp6fBoILE7HrFi9vwWqtg79Rl1lwECDlWhFvkU72gzoX5NDnzUChtfMD8zDFIxm6HKitkxADTIxSiwJY2bGdgEvYDiJyfsdujfYsfsRjjo3v2IDxyA8mf4hLi8QCKyT6H3JJV3AnSiNvsoj352econhqGBLGyTornrjksDCjn+XFj0cmlzl+I7rS6f+THRE2Ti8bbSLlLGgmtJyIUsbKOmGD15Mt1wOGJrifWyLoDoKu4DGISZ8odbAnonWa50DrBKGMMh960X8WnmHevprKasGYVfgmyEsl6ahgjQgIFi2CBdRtNSg2//YNqQ0Q3WQ/nyWk3820BEE/WeHGBaONdejSPQ/dEJASX8kxKM2HRx3AEUtCX3W1r1eisa3Fe2xkShConuY73Zcn5b+QpniDVvTOOXwvozfsnyAtLMITRpP6QvubWa1wYEJvsb9DdFuUmJbIeHIbQ=

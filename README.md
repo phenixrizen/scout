@@ -1,14 +1,15 @@
-# scout - Simple checking of http, tcp, udp, connections and icmp checks
+## scout - Simple checking of http, tcp, udp, connections and icmp checks
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/phenixrizen/scout)
 [![Build Status](https://travis-ci.org/phenixrizen/scout.svg?branch=master)](https://travis-ci.org/phenixrizen/scout)
 [![Coverage Status](https://coveralls.io/repos/github/phenixrizen/scout/badge.svg?branch=master)](https://coveralls.io/github/phenixrizen/scout?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/phenixrizen/scout)](https://goreportcard.com/report/github.com/phenixrizen/scout)
 
 ### Key Features
-- Ability to motior multiple services
+- Ability to monitor multiple services
 - Ability to monitor tcp, udp, http, and icmp
 - Ability to add and remove services for monitoring
 - Ability to specify expected response content and codes
+- Ability to specify check interval and timeouts per service
 
 ### Get Started
 
