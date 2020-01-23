@@ -2,6 +2,7 @@ package scout
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +14,7 @@ type Scout struct {
 	Responses chan interface{}
 	Running   bool
 	Logger    logrus.FieldLogger
+	mux       *sync.RWMutex
 }
 
 type ServiceSuccess struct {
@@ -60,10 +62,12 @@ func (s *Scout) AddService(serv *Service) {
 	if serv != nil && serv.Id != uuid.Nil {
 		serv.Responses = s.Responses
 		serv.Logger = s.Logger
+		s.mux.Lock()
 		s.Services[serv.Id] = serv
 		if s.Running {
 			go serv.Scout()
 		}
+		s.mux.Unlock()
 	}
 }
 
@@ -71,7 +75,9 @@ func (s *Scout) AddService(serv *Service) {
 func (s *Scout) DelService(id uuid.UUID) {
 	if id != uuid.Nil {
 		s.Services[id].Stop()
+		s.mux.Lock()
 		delete(s.Services, id)
+		s.mux.Unlock()
 	}
 }
 
@@ -121,19 +127,23 @@ func (s *Scout) HandleResponses() {
 
 // GetService returns a service
 func (s *Scout) GetService(id uuid.UUID) *Service {
+	s.mux.RLock()
 	if s, ok := s.Services[id]; ok {
 		return s
 	}
+	s.mux.RUnlock()
 	return nil
 }
 
 // GetServices returns all services
 func (s *Scout) GetServices() []*Service {
+	s.mux.RLock()
 	servs := make([]*Service, len(s.Services))
 	i := 0
 	for _, serv := range s.Services {
 		servs[i] = serv
 		i++
 	}
+	s.mux.RUnlock()
 	return servs
 }
