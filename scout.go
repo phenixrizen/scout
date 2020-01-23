@@ -35,6 +35,7 @@ func NewScout(servs []*Service, log logrus.FieldLogger) *Scout {
 	if log == nil {
 		return nil
 	}
+	log = log.WithField("component", "scout")
 	servMap := make(map[uuid.UUID]*Service)
 	resp := make(chan interface{})
 	for i, serv := range servs {
