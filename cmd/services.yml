@@ -1,0 +1,21 @@
+---
+- id: 8b3c6416-2578-4418-8cbf-a8424e7ce04d
+  name: Google
+  address: https://google.com
+  expected: ''
+  expectedStatus: 200
+  checkInterval: 5000
+  type: http
+  timeout: 5
+- id: 409455e9-c496-4907-8478-34cff2e7b131
+  name: Netlify
+  address: https://netlify.com
+  expected: ''
+  expectedStatus: 200
+  checkInterval: 4000
+  type: http
+- id: fe727692-bde3-4021-819b-1ceedad4aa27
+  name: Netlify
+  address: netlify.com
+  checkInterval: 3000
+  type: icmp

@@ -17,36 +17,33 @@ import (
 
 // Service is the main struct for Services
 type Service struct {
-	Id                 uuid.UUID        `json:"id"`
-	Name               string           `json:"name"`
-	Address            string           `json:"address"`
-	Expected           string           `json:"expected"`
-	ExpectedStatus     int              `json:"expected_status"`
-	Interval           int              `json:"check_interval"`
-	Type               string           `json:"type"`
-	Method             string           `json:"method"`
-	PostData           string           `json:"post_data"`
-	Port               int              `json:"port"`
-	Timeout            int              `json:"timeout"`
-	Order              int              `json:"order_id"`
-	AllowNotifications bool             `json:"allow_notifications"`
-	VerifySSL          bool             `json:"verify_ssl"`
-	Headers            *string          `json:"headers"`
-	CreatedAt          time.Time        `json:"created_at"`
-	UpdatedAt          time.Time        `json:"updated_at"`
-	Online             bool             `json:"online"`
-	Latency            float64          `json:"latency"`
-	PingTime           float64          `json:"ping_time"`
-	AvgResponse        string           `json:"avg_response"`
-	Running            chan bool        `json:"-"`
-	Checkpoint         time.Time        `json:"-"`
-	SleepDuration      time.Duration    `json:"-"`
-	LastResponse       string           `json:"-"`
-	DownText           string           `json:"-"`
-	LastStatusCode     int              `json:"status_code"`
-	LastOnline         time.Time        `json:"last_success"`
-	Logger             *logrus.Logger   `json:"-"`
-	Responses          chan interface{} `json:"-"`
+	Id             uuid.UUID        `json:"id"`
+	Name           string           `json:"name"`
+	Address        string           `json:"address"`
+	Expected       string           `json:"expected"`
+	ExpectedStatus int              `json:"expectedStatus"`
+	Interval       int              `json:"checkInterval"`
+	Type           string           `json:"type"`
+	Method         string           `json:"method"`
+	PostData       string           `json:"postData"`
+	Port           int              `json:"port"`
+	Timeout        int              `json:"timeout"`
+	VerifySSL      bool             `json:"verifySSL"`
+	Headers        *string          `json:"headers"`
+	CreatedAt      time.Time        `json:"createdAt"`
+	UpdatedAt      time.Time        `json:"updatedAt"`
+	Online         bool             `json:"online"`
+	Latency        float64          `json:"latency"`
+	PingTime       float64          `json:"pingTime"`
+	Running        chan bool        `json:"-"`
+	Checkpoint     time.Time        `json:"-"`
+	SleepDuration  time.Duration    `json:"-"`
+	LastResponse   string           `json:"-"`
+	DownText       string           `json:"-"`
+	LastStatusCode int              `json:"statusCode"`
+	LastOnline     time.Time        `json:"lastSuccess"`
+	Logger         *logrus.Logger   `json:"-"`
+	Responses      chan interface{} `json:"-"`
 }
 
 // Initialize a Service

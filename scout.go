@@ -11,6 +11,7 @@ import (
 type Scout struct {
 	Services  map[uuid.UUID]*Service
 	Responses chan interface{}
+	Running   bool
 	Logger    *logrus.Logger
 }
 
@@ -29,6 +30,7 @@ type ServiceFailure struct {
 	ErrorCode int
 }
 
+// NewScout returns a scout
 func NewScout(servs []*Service, log *logrus.Logger) *Scout {
 	if log == nil {
 		log = logrus.New()
@@ -37,6 +39,9 @@ func NewScout(servs []*Service, log *logrus.Logger) *Scout {
 	resp := make(chan interface{})
 	for i, serv := range servs {
 		serv.Responses = resp
+		if serv.Logger == nil {
+			serv.Logger = logrus.New()
+		}
 		serv.Initialize()
 		servMap[serv.Id] = servs[i]
 	}
@@ -49,14 +54,54 @@ func NewScout(servs []*Service, log *logrus.Logger) *Scout {
 	return s
 }
 
-// CheckServices will start the checking go routine for each service
-func (s *Scout) CheckServices() {
-	s.Logger.Infoln(fmt.Sprintf("Starting monitoring process for %v Services", len(s.Services)))
-	for _, ser := range s.Services {
-		go ser.Scout()
+// AddService adds a service to monitor
+func (s *Scout) AddService(serv *Service) {
+	if serv != nil && serv.Id != uuid.Nil {
+		serv.Responses = s.Responses
+		serv.Logger = logrus.New()
+		s.Services[serv.Id] = serv
+		if s.Running {
+			go serv.Scout()
+		}
 	}
 }
 
+// DelService adds a service to monitor
+func (s *Scout) DelService(id uuid.UUID) {
+	if id != uuid.Nil {
+		s.Services[id].Stop()
+		delete(s.Services, id)
+	}
+}
+
+// StartScoutingServices will start the checking go routine for each service
+func (s *Scout) StartScoutingServices() {
+	s.Logger.Infof(fmt.Sprintf("Starting scouting routines for %v Services", len(s.Services)))
+	if !s.Running {
+		for _, ser := range s.Services {
+			go ser.Scout()
+		}
+		s.Running = true
+	}
+}
+
+// StopScoutingServices will start the checking go routine for each service
+func (s *Scout) StopScoutingServices() {
+	s.Logger.Infof(fmt.Sprintf("Stopping scouting routines for %v Services", len(s.Services)))
+	if s.Running {
+		for _, ser := range s.Services {
+			ser.Stop()
+		}
+		s.Running = false
+	}
+}
+
+// GetResponseChannel returns a interface channel that has either ServiceSuccess or ServiceFailure responses
+func (s *Scout) GetResponseChannel() chan interface{} {
+	return s.Responses
+}
+
+// HandleResponses simply logs current responses, this is not intended to be used, but demonatrates scouts usage
 func (s *Scout) HandleResponses() {
 	s.Logger.Info("Listening for Responses...")
 	for resp := range s.Responses {
@@ -71,4 +116,23 @@ func (s *Scout) HandleResponses() {
 			continue
 		}
 	}
+}
+
+// GetService returns a service
+func (s *Scout) GetService(id uuid.UUID) *Service {
+	if s, ok := s.Services[id]; ok {
+		return s
+	}
+	return nil
+}
+
+// GetServices returns all services
+func (s *Scout) GetServices() []*Service {
+	servs := make([]*Service, len(s.Services))
+	i := 0
+	for _, serv := range s.Services {
+		servs[i] = serv
+		i++
+	}
+	return servs
 }
