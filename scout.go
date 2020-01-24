@@ -25,11 +25,12 @@ type ServiceSuccess struct {
 }
 
 type ServiceFailure struct {
-	Service   uuid.UUID
-	Issue     string
-	PingTime  float64
-	CreatedAt time.Time
-	ErrorCode int
+	Service          uuid.UUID `json:"service"`
+	Issue            string    `json:"issue"`
+	PingTime         float64   `json:"pingTime"`
+	RetriesExhausted bool      `json:"retiresExhausted,omitempty`
+	CreatedAt        time.Time `json:"createdAt"`
+	ErrorCode        int       `json:"errorCode,omitempty"`
 }
 
 // NewScout returns a scout
@@ -46,7 +47,7 @@ func NewScout(servs []*Service, log logrus.FieldLogger) *Scout {
 			serv.Logger = log
 		}
 		serv.Initialize()
-		servMap[serv.Id] = servs[i]
+		servMap[serv.ID] = servs[i]
 	}
 	s := &Scout{
 		Services:  servMap,
@@ -59,11 +60,11 @@ func NewScout(servs []*Service, log logrus.FieldLogger) *Scout {
 
 // AddService adds a service to monitor
 func (s *Scout) AddService(serv *Service) {
-	if serv != nil && serv.Id != uuid.Nil {
+	if serv != nil && serv.ID != uuid.Nil {
 		serv.Responses = s.Responses
 		serv.Logger = s.Logger
 		s.mux.Lock()
-		s.Services[serv.Id] = serv
+		s.Services[serv.ID] = serv
 		if s.Running {
 			go serv.Scout()
 		}

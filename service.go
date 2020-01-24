@@ -2,7 +2,10 @@ package scout
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/url"
@@ -15,35 +18,75 @@ import (
 	fastping "github.com/tatsushid/go-fastping"
 )
 
+// Duration is a custom type to use for human readable durations in JSON/YAML
+type Duration time.Duration
+
+// Duration return a time.Duration
+func (d Duration) Duration() time.Duration {
+	return time.Duration(d)
+}
+
+// MarshalJSON marshals human redable durations
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Duration(d).String())
+}
+
+// UnmarshalJSON unmarshals human redable durations
+func (d *Duration) UnmarshalJSON(b []byte) error {
+	var v interface{}
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	switch value := v.(type) {
+	case float64:
+		*d = Duration(time.Duration(value))
+		return nil
+	case string:
+		tmp, err := time.ParseDuration(value)
+		if err != nil {
+			return err
+		}
+		*d = Duration(tmp)
+		return nil
+	default:
+		return errors.New("invalid duration")
+	}
+}
+
 // Service is the main struct for Services
 type Service struct {
-	Id             uuid.UUID          `json:"id"`
-	Name           string             `json:"name"`
-	Address        string             `json:"address"`
-	Expected       string             `json:"expected"`
-	ExpectedStatus int                `json:"expectedStatus"`
-	Interval       int                `json:"checkInterval"`
-	Type           string             `json:"type"`
-	Method         string             `json:"method"`
-	PostData       string             `json:"postData"`
-	Port           int                `json:"port"`
-	Timeout        int                `json:"timeout"`
-	VerifySSL      bool               `json:"verifySSL"`
-	Headers        []string           `json:"headers"`
-	CreatedAt      time.Time          `json:"createdAt"`
-	UpdatedAt      time.Time          `json:"updatedAt"`
-	Online         bool               `json:"online"`
-	Latency        float64            `json:"latency"`
-	PingTime       float64            `json:"pingTime"`
-	Running        chan bool          `json:"-"`
-	Checkpoint     time.Time          `json:"-"`
-	SleepDuration  time.Duration      `json:"-"`
-	LastResponse   string             `json:"-"`
-	DownText       string             `json:"-"`
-	LastStatusCode int                `json:"statusCode"`
-	LastOnline     time.Time          `json:"lastSuccess"`
-	Logger         logrus.FieldLogger `json:"-"`
-	Responses      chan interface{}   `json:"-"`
+	ID               uuid.UUID          `json:"id"`
+	Name             string             `json:"name"`
+	Address          string             `json:"address"`
+	Expected         string             `json:"expected"`
+	ExpectedStatus   int                `json:"expectedStatus"`
+	Interval         Duration           `json:"checkInterval"`
+	Type             string             `json:"type"`
+	Method           string             `json:"method"`
+	PostData         string             `json:"postData"`
+	Port             int                `json:"port"`
+	Timeout          Duration           `json:"timeout"`
+	VerifySSL        bool               `json:"verifySSL"`
+	Headers          []string           `json:"headers"`
+	CreatedAt        time.Time          `json:"createdAt"`
+	UpdatedAt        time.Time          `json:"updatedAt"`
+	Online           bool               `json:"online"`
+	Latency          float64            `json:"latency"`
+	PingTime         float64            `json:"pingTime"`
+	Retry            bool               `json:"retry"`
+	RetryMinInterval Duration           `json:"retryMinInterval"`
+	RetryMaxInterval Duration           `json:"retryMaxInterval"`
+	RetryMax         int                `json:"retryMax"`
+	RetryAttempts    int                `json:"-"`
+	Running          chan bool          `json:"-"`
+	Checkpoint       time.Time          `json:"-"`
+	SleepDuration    Duration           `json:"-"`
+	LastResponse     string             `json:"lastResponse"`
+	DownText         string             `json:"downText"`
+	LastStatusCode   int                `json:"statusCode"`
+	LastOnline       time.Time          `json:"lastSuccess"`
+	Logger           logrus.FieldLogger `json:"-"`
+	Responses        chan interface{}   `json:"-"`
 }
 
 // Initialize a Service
@@ -95,31 +138,30 @@ func (s *Service) Check() {
 func (s *Service) Scout() {
 	s.Start()
 	s.Checkpoint = time.Now().UTC()
-	s.SleepDuration = (time.Duration(s.Interval) * time.Millisecond)
+	s.SleepDuration = s.Interval
 ScoutLoop:
 	for {
 		select {
 		case <-s.Running:
-			s.Logger.Infof(fmt.Sprintf("Stopping service: %v", s.Name))
+			s.Logger.Debugf(fmt.Sprintf("Stopping service: %v", s.Name))
 			break ScoutLoop
-		case <-time.After(s.SleepDuration):
-			s.Logger.Infof("Checking: %s -> %s", s.Name, s.Type)
+		case <-time.After(s.SleepDuration.Duration()):
+			s.Logger.Debugf("Checking: %s -> %s", s.Name, s.Type)
 			s.Check()
-			s.Checkpoint = s.Checkpoint.Add(s.duration())
-			sleep := s.Checkpoint.Sub(time.Now().UTC())
-			if !s.Online {
-				s.SleepDuration = s.duration()
+			s.Checkpoint = s.Checkpoint.Add(s.Interval.Duration())
+			sleep := Duration(s.Checkpoint.Sub(time.Now().UTC()))
+			if s.Online {
+				s.SleepDuration = s.Interval
 			} else {
-				s.SleepDuration = sleep
+				if s.Retry {
+					s.LinearJitterBackoff()
+				} else {
+					s.SleepDuration = sleep
+				}
 			}
 		}
 		continue
 	}
-}
-
-// duration returns the amount of duration for a service to check its status
-func (s *Service) duration() time.Duration {
-	return time.Duration(s.Interval) * time.Millisecond
 }
 
 func (s *Service) parseHost() string {
@@ -263,7 +305,7 @@ func (s *Service) CheckHTTP() {
 func (s *Service) Success() {
 	s.LastOnline = time.Now().UTC()
 	suc := ServiceSuccess{
-		Service:   s.Id,
+		Service:   s.ID,
 		Latency:   s.Latency,
 		PingTime:  s.PingTime,
 		CreatedAt: time.Now().UTC(),
@@ -274,14 +316,46 @@ func (s *Service) Success() {
 
 // Failure will create a new 'ServiceFailure' record on the Response Channel
 func (s *Service) Failure(issue string) {
+	exhausted := false
+	if s.RetryAttempts == s.RetryMax && s.RetryMax != 0 {
+		s.Stop()
+		exhausted = true
+	}
 	fail := ServiceFailure{
-		Service:   s.Id,
-		Issue:     issue,
-		PingTime:  s.PingTime,
-		CreatedAt: time.Now().UTC(),
-		ErrorCode: s.LastStatusCode,
+		Service:          s.ID,
+		Issue:            issue,
+		PingTime:         s.PingTime,
+		RetriesExhausted: exhausted,
+		CreatedAt:        time.Now().UTC(),
+		ErrorCode:        s.LastStatusCode,
 	}
 	s.Online = false
 	s.DownText = issue
 	s.Responses <- fail
+}
+
+// LinearJitterBackoff will perform linear backoff based on the attempt number
+// and with jitter to prevent a thundering herd. Min and max here are NOT
+// absolute values. The number to be multipled by the attempt number will
+// be chosen at random from between them, thus they are bounding the jitter.
+func (s *Service) LinearJitterBackoff() {
+	// RetryAttempts always starts at zero but we want to start at 1 for multiplication
+	s.RetryAttempts++
+
+	if s.RetryMaxInterval <= s.RetryMinInterval {
+		// TODO think more about this...
+		// if they are the same, so return min * attemptNum
+		s.SleepDuration = Duration(s.RetryMinInterval.Duration() * time.Duration(s.RetryAttempts))
+	}
+
+	// Seed rand
+	rand := rand.New(rand.NewSource(int64(time.Now().Nanosecond())))
+
+	// Pick a random number that lies somewhere between the min and max and
+	// multiply by the attemptNum. attemptNum starts at zero so we always
+	// increment here. We first get a random percentage, then apply that to the
+	// difference between min and max, and add to min.
+	jitter := rand.Float64() * float64(s.RetryMaxInterval-s.RetryMinInterval)
+	jitterMin := int64(jitter) + int64(s.RetryMinInterval)
+	s.SleepDuration = Duration(time.Duration(jitterMin * int64(s.RetryAttempts)))
 }

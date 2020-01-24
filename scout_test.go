@@ -14,7 +14,7 @@ func TestScout(t *testing.T) {
 	log := logrus.New()
 
 	google := &Service{
-		Id:             uuid.New(),
+		ID:             uuid.New(),
 		Name:           "Google",
 		Address:        "https://google.com",
 		Timeout:        5,
@@ -25,7 +25,7 @@ func TestScout(t *testing.T) {
 	}
 
 	netlify := &Service{
-		Id:             uuid.New(),
+		ID:             uuid.New(),
 		Name:           "Netlify",
 		Address:        "https://netlify.com",
 		Timeout:        5,
@@ -36,7 +36,7 @@ func TestScout(t *testing.T) {
 	}
 
 	netlifyPing := &Service{
-		Id:       uuid.New(),
+		ID:       uuid.New(),
 		Name:     "Netlify",
 		Address:  "netlify.com",
 		Timeout:  5,

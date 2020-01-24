@@ -3,6 +3,7 @@ module github.com/phenixrizen/scout
 go 1.12
 
 require (
+	github.com/davecgh/go-spew v1.1.1
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/uuid v1.1.1
 	github.com/sirupsen/logrus v1.4.2
