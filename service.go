@@ -140,6 +140,9 @@ func (s *Service) Check() {
 
 // Scout is the main go routine for checking a service
 func (s *Service) Scout() {
+	if s.Timeout == 0 {
+		s.Timeout = Duration(1 * time.Second)
+	}
 	s.Start()
 	s.Checkpoint = time.Now().UTC()
 	s.SleepDuration = s.Interval

@@ -20,6 +20,7 @@
   address: netlify.com
   checkInterval: 1.5s
   type: icmp
+  timeout: 150ms
 - id: 18f8bcce-ce1e-4f45-b209-c284593b5b94
   name: HP
   address: hp.com
@@ -29,4 +30,5 @@
   retryMinInterval: 1s
   retryMaxInterval: 10s
   retryMax: 10
+  timeout: 150ms
   trace: true
