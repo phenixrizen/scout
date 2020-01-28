@@ -16,6 +16,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	fastping "github.com/tatsushid/go-fastping"
+
+	traceroute "github.com/phenixrizen/go-traceroute"
 )
 
 // Duration is a custom type to use for human readable durations in JSON/YAML
@@ -55,38 +57,40 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 
 // Service is the main struct for Services
 type Service struct {
-	ID               uuid.UUID          `json:"id"`
-	Name             string             `json:"name"`
-	Address          string             `json:"address"`
-	Expected         string             `json:"expected"`
-	ExpectedStatus   int                `json:"expectedStatus"`
-	Interval         Duration           `json:"checkInterval"`
-	Type             string             `json:"type"`
-	Method           string             `json:"method"`
-	PostData         string             `json:"postData"`
-	Port             int                `json:"port"`
-	Timeout          Duration           `json:"timeout"`
-	VerifySSL        bool               `json:"verifySSL"`
-	Headers          []string           `json:"headers"`
-	CreatedAt        time.Time          `json:"createdAt"`
-	UpdatedAt        time.Time          `json:"updatedAt"`
-	Online           bool               `json:"online"`
-	Latency          float64            `json:"latency"`
-	PingTime         float64            `json:"pingTime"`
-	Retry            bool               `json:"retry"`
-	RetryMinInterval Duration           `json:"retryMinInterval"`
-	RetryMaxInterval Duration           `json:"retryMaxInterval"`
-	RetryMax         int                `json:"retryMax"`
-	RetryAttempts    int                `json:"-"`
-	Running          chan bool          `json:"-"`
-	Checkpoint       time.Time          `json:"-"`
-	SleepDuration    Duration           `json:"-"`
-	LastResponse     string             `json:"lastResponse"`
-	DownText         string             `json:"downText"`
-	LastStatusCode   int                `json:"statusCode"`
-	LastOnline       time.Time          `json:"lastSuccess"`
-	Logger           logrus.FieldLogger `json:"-"`
-	Responses        chan interface{}   `json:"-"`
+	ID               uuid.UUID              `json:"id"`
+	Name             string                 `json:"name"`
+	Address          string                 `json:"address"`
+	Expected         string                 `json:"expected"`
+	ExpectedStatus   int                    `json:"expectedStatus"`
+	Interval         Duration               `json:"checkInterval"`
+	Type             string                 `json:"type"`
+	Method           string                 `json:"method"`
+	PostData         string                 `json:"postData"`
+	Port             int                    `json:"port"`
+	Timeout          Duration               `json:"timeout"`
+	VerifySSL        bool                   `json:"verifySSL"`
+	Headers          []string               `json:"headers"`
+	CreatedAt        time.Time              `json:"createdAt"`
+	UpdatedAt        time.Time              `json:"updatedAt"`
+	Online           bool                   `json:"online"`
+	Latency          float64                `json:"latency"`
+	PingTime         float64                `json:"pingTime"`
+	Trace            bool                   `json:"trace"`
+	TraceData        []traceroute.TraceData `json:"traceData,omitempty"`
+	Retry            bool                   `json:"retry"`
+	RetryMinInterval Duration               `json:"retryMinInterval"`
+	RetryMaxInterval Duration               `json:"retryMaxInterval"`
+	RetryMax         int                    `json:"retryMax"`
+	RetryAttempts    int                    `json:"-"`
+	Running          chan bool              `json:"-"`
+	Checkpoint       time.Time              `json:"-"`
+	SleepDuration    Duration               `json:"-"`
+	LastResponse     string                 `json:"lastResponse"`
+	DownText         string                 `json:"downText"`
+	LastStatusCode   int                    `json:"statusCode"`
+	LastOnline       time.Time              `json:"lastSuccess"`
+	Logger           logrus.FieldLogger     `json:"-"`
+	Responses        chan interface{}       `json:"-"`
 }
 
 // Initialize a Service
@@ -165,7 +169,7 @@ ScoutLoop:
 }
 
 func (s *Service) parseHost() string {
-	if s.Type == "tcp" || s.Type == "udp" {
+	if s.Type == "tcp" || s.Type == "udp" || s.Type == "icmp" {
 		return s.Address
 	} else {
 		u, err := url.Parse(s.Address)
@@ -174,6 +178,33 @@ func (s *Service) parseHost() string {
 		}
 		return u.Hostname()
 	}
+}
+
+func (s *Service) ips() []net.IP {
+	var addrs []string
+	var ips []net.IP
+	var err error
+	if s.Type == "tcp" {
+		addrs, err = net.LookupHost(s.parseHost())
+		if err != nil {
+			return nil
+		}
+		for _, add := range addrs {
+			ip := net.ParseIP(add)
+			if ip != nil {
+				ips = append(ips, ip)
+			}
+
+		}
+		return ips
+	} else {
+		ips, err = net.LookupIP(s.parseHost())
+		if err != nil {
+			return nil
+		}
+		return ips
+	}
+	return nil
 }
 
 // DNSCheck will check the domain name and return a float64 representing the seconds it took to resolve DNS
@@ -201,12 +232,14 @@ func isIPv6(address string) bool {
 // CheckICMP will send a ICMP ping packet to the service
 func (s *Service) CheckICMP() {
 	p := fastping.NewPinger()
+	p.MaxRTT = s.Timeout.Duration()
 	resolveIP := "ip4:icmp"
 	if isIPv6(s.Address) {
 		resolveIP = "ip6:icmp"
 	}
 	ra, err := net.ResolveIPAddr(resolveIP, s.Address)
 	if err != nil {
+		s.Logger.Debugf("Could not send ICMP to service %v, %v", s.Address, err)
 		s.Failure(fmt.Sprintf("Could not send ICMP to service %v, %v", s.Address, err))
 		return
 	}
@@ -216,8 +249,15 @@ func (s *Service) CheckICMP() {
 		s.PingTime = rtt.Seconds()
 		s.Success()
 	}
+	p.OnIdle = func() {
+		s.Latency = -1
+		s.PingTime = -1
+		s.Logger.Debug("Reachmed max ICMP idle timeout")
+		s.Failure("Reachmed max ICMP idle timeout")
+	}
 	err = p.Run()
 	if err != nil {
+		s.Logger.Debugf("Issue running ICMP to service %s, %v, %v", s.Name, s.Address, err)
 		s.Failure(fmt.Sprintf("Issue running ICMP to service %v, %v", s.Address, err))
 		return
 	}
@@ -304,6 +344,7 @@ func (s *Service) CheckHTTP() {
 // Success will create a new 'ServiceSuccess' record on the Response Channel
 func (s *Service) Success() {
 	s.LastOnline = time.Now().UTC()
+	s.RetryAttempts = 0
 	suc := ServiceSuccess{
 		Service:   s.ID,
 		Latency:   s.Latency,
@@ -329,8 +370,16 @@ func (s *Service) Failure(issue string) {
 		CreatedAt:        time.Now().UTC(),
 		ErrorCode:        s.LastStatusCode,
 	}
+	if s.Trace {
+		ips := s.ips()
+		for _, ip := range ips {
+			trace := traceroute.Exec(ip, s.Timeout.Duration(), 3, 64, "icmp", 33434)
+			s.TraceData = append(s.TraceData, trace)
+		}
+	}
 	s.Online = false
 	s.DownText = issue
+	fail.TraceData = s.TraceData
 	s.Responses <- fail
 }
 

@@ -6,6 +6,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/uuid v1.1.1
+	github.com/phenixrizen/go-traceroute v0.0.0-20200128013249-14f74dc421b9
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.2.2
 	github.com/tatsushid/go-fastping v0.0.0-20160109021039-d7bb493dee3e

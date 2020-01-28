@@ -7,6 +7,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+
+	traceroute "github.com/phenixrizen/go-traceroute"
 )
 
 type Scout struct {
@@ -18,19 +20,20 @@ type Scout struct {
 }
 
 type ServiceSuccess struct {
-	Service   uuid.UUID
-	Latency   float64
-	PingTime  float64
-	CreatedAt time.Time
+	Service   uuid.UUID `json:"service"`
+	Latency   float64   `json:"latency"`
+	PingTime  float64   `json:"ping_time"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type ServiceFailure struct {
-	Service          uuid.UUID `json:"service"`
-	Issue            string    `json:"issue"`
-	PingTime         float64   `json:"pingTime"`
-	RetriesExhausted bool      `json:"retiresExhausted,omitempty`
-	CreatedAt        time.Time `json:"createdAt"`
-	ErrorCode        int       `json:"errorCode,omitempty"`
+	Service          uuid.UUID              `json:"service"`
+	Issue            string                 `json:"issue"`
+	PingTime         float64                `json:"pingTime"`
+	TraceData        []traceroute.TraceData `json:"traceData,omitempty"`
+	RetriesExhausted bool                   `json:"retiresExhausted,omitempty`
+	CreatedAt        time.Time              `json:"createdAt"`
+	ErrorCode        int                    `json:"errorCode,omitempty"`
 }
 
 // NewScout returns a scout

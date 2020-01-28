@@ -5,6 +5,8 @@ github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeME
 github.com/google/uuid v1.1.1 h1:Gkbcsh/GbpXz7lPftLA3P6TYMwjCLYm83jiFQZF/3gY=
 github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
+github.com/phenixrizen/go-traceroute v0.0.0-20200128013249-14f74dc421b9 h1:LKrMy+LqmMBSPfL4Kn64mNMihr/jheoyXasbWy+Q8JM=
+github.com/phenixrizen/go-traceroute v0.0.0-20200128013249-14f74dc421b9/go.mod h1:fjaPLNtwpksQU6Aprbk4PrjvyVKpB83SCaxthpk0QZY=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/sirupsen/logrus v1.4.2 h1:SPIRibHv4MatM3XXNO2BJeFLZwZ2LvZgfQ5+UNI2im4=
@@ -14,6 +16,8 @@ github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/tatsushid/go-fastping v0.0.0-20160109021039-d7bb493dee3e h1:nt2877sKfojlHCTOBXbpWjBkuWKritFaGIfgQwbQUls=
 github.com/tatsushid/go-fastping v0.0.0-20160109021039-d7bb493dee3e/go.mod h1:B4+Kq1u5FlULTjFSM707Q6e/cOHFv0z/6QRoxubDIQ8=
+github.com/vaegt/go-traceroute v0.0.0-20180831113646-6af9cf92ef92 h1:uFUUjsePQUx4wDv5skHN7XqWbcfnh44ssvcOl420OSc=
+github.com/vaegt/go-traceroute v0.0.0-20180831113646-6af9cf92ef92/go.mod h1:Qvb8EKYviPvL0IB+IY7GR//ldwQMTLYUCh2IbN1SnDY=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa h1:F+8P+gmewFQYRk6JoLQLwjBCTu3mcIURZfNkVweuRKA=
 golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
