@@ -68,19 +68,32 @@ func main() {
   address: https://google.com
   expected: ''
   expectedStatus: 200
-  checkInterval: 5000
+  checkInterval: 5s
   type: http
-  timeout: 5
+  timeout: 5s
 - id: 409455e9-c496-4907-8478-34cff2e7b131
   name: Netlify
   address: https://netlify.com
   expected: ''
   expectedStatus: 200
-  checkInterval: 4000
+  checkInterval: 3.2s
   type: http
+  timeout: 5s
 - id: fe727692-bde3-4021-819b-1ceedad4aa27
   name: Netlify
   address: netlify.com
-  checkInterval: 3000
+  checkInterval: 1.5s
   type: icmp
+  timeout: 150ms
+- id: 18f8bcce-ce1e-4f45-b209-c284593b5b94
+  name: HP
+  address: hp.com
+  checkInterval: 1.5s
+  type: icmp
+  retry: true
+  retryMinInterval: 1s
+  retryMaxInterval: 10s
+  retryMax: 10
+  timeout: 150ms
+  trace: true
 ```

@@ -81,16 +81,16 @@ type Service struct {
 	RetryMinInterval Duration               `json:"retryMinInterval"`
 	RetryMaxInterval Duration               `json:"retryMaxInterval"`
 	RetryMax         int                    `json:"retryMax"`
-	RetryAttempts    int                    `json:"-"`
-	Running          chan bool              `json:"-"`
-	Checkpoint       time.Time              `json:"-"`
-	SleepDuration    Duration               `json:"-"`
+	RetryAttempts    int                    `json:"-" bson:"-"`
+	Running          chan bool              `json:"-" bson:"-"`
+	Checkpoint       time.Time              `json:"-" bson:"-"`
+	SleepDuration    Duration               `json:"-" bson:"-"`
 	LastResponse     string                 `json:"lastResponse"`
 	DownText         string                 `json:"downText"`
 	LastStatusCode   int                    `json:"statusCode"`
 	LastOnline       time.Time              `json:"lastSuccess"`
-	Logger           logrus.FieldLogger     `json:"-"`
-	Responses        chan interface{}       `json:"-"`
+	Logger           logrus.FieldLogger     `json:"-" bson:"-"`
+	Responses        chan interface{}       `json:"-" bson:"-"`
 }
 
 // Initialize a Service
