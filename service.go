@@ -73,8 +73,8 @@ type Service struct {
 	CreatedAt        time.Time              `json:"createdAt"`
 	UpdatedAt        time.Time              `json:"updatedAt"`
 	Online           bool                   `json:"online"`
-	Latency          float64                `json:"latency"`
-	PingTime         float64                `json:"pingTime"`
+	Latency          int64                  `json:"latency"`
+	PingTime         int64                  `json:"pingTime"`
 	Trace            bool                   `json:"trace"`
 	TraceData        []traceroute.TraceData `json:"traceData,omitempty"`
 	Retry            bool                   `json:"retry"`
@@ -210,8 +210,8 @@ func (s *Service) ips() []net.IP {
 	return nil
 }
 
-// DNSCheck will check the domain name and return a float64 representing the seconds it took to resolve DNS
-func (s *Service) DNSCheck() (float64, error) {
+// DNSCheck will check the domain name and return a int64 representing the milliseconds it took to resolve DNS
+func (s *Service) DNSCheck() (int64, error) {
 	var err error
 	t1 := time.Now()
 	host := s.parseHost()
@@ -224,7 +224,7 @@ func (s *Service) DNSCheck() (float64, error) {
 		return 0, err
 	}
 	t2 := time.Now()
-	subTime := t2.Sub(t1).Seconds()
+	subTime := t2.Sub(t1).Milliseconds()
 	return subTime, err
 }
 
@@ -248,8 +248,8 @@ func (s *Service) CheckICMP() {
 	}
 	p.AddIPAddr(ra)
 	p.OnRecv = func(addr *net.IPAddr, rtt time.Duration) {
-		s.Latency = rtt.Seconds()
-		s.PingTime = rtt.Seconds()
+		s.Latency = rtt.Milliseconds()
+		s.PingTime = rtt.Milliseconds()
 		s.Success()
 	}
 	p.OnIdle = func() {
@@ -293,7 +293,7 @@ func (s *Service) CheckNet() {
 		return
 	}
 	t2 := time.Now()
-	s.Latency = t2.Sub(t1).Seconds()
+	s.Latency = t2.Sub(t1).Milliseconds()
 	s.LastResponse = ""
 	s.Success()
 }
@@ -322,7 +322,7 @@ func (s *Service) CheckHTTP() {
 		return
 	}
 	t2 := time.Now()
-	s.Latency = t2.Sub(t1).Seconds()
+	s.Latency = t2.Sub(t1).Milliseconds()
 	s.LastResponse = string(content)
 	s.LastStatusCode = res.StatusCode
 

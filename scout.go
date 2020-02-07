@@ -21,15 +21,15 @@ type Scout struct {
 
 type ServiceSuccess struct {
 	Service   uuid.UUID `json:"service"`
-	Latency   float64   `json:"latency"`
-	PingTime  float64   `json:"pingTime"`
+	Latency   int64     `json:"latency"`
+	PingTime  int64     `json:"pingTime"`
 	CreatedAt time.Time `json:"createdAt"`
 }
 
 type ServiceFailure struct {
 	Service          uuid.UUID              `json:"service"`
 	Issue            string                 `json:"issue"`
-	PingTime         float64                `json:"pingTime"`
+	PingTime         int64                  `json:"pingTime"`
 	TraceData        []traceroute.TraceData `json:"traceData,omitempty"`
 	RetriesExhausted bool                   `json:"retiresExhausted,omitempty`
 	CreatedAt        time.Time              `json:"createdAt"`
