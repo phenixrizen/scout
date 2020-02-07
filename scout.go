@@ -22,8 +22,8 @@ type Scout struct {
 type ServiceSuccess struct {
 	Service   uuid.UUID `json:"service"`
 	Latency   float64   `json:"latency"`
-	PingTime  float64   `json:"ping_time"`
-	CreatedAt time.Time `json:"created_at"`
+	PingTime  float64   `json:"pingTime"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 type ServiceFailure struct {
