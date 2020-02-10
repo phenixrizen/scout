@@ -60,6 +60,7 @@ type Service struct {
 	ID               uuid.UUID              `json:"id"`
 	Name             string                 `json:"name"`
 	Address          string                 `json:"address"`
+	ResolveTo        string                 `json:"resolveTo"`
 	Expected         string                 `json:"expected"`
 	ExpectedStatus   int                    `json:"expectedStatus"`
 	Interval         Duration               `json:"checkInterval"`
@@ -73,6 +74,7 @@ type Service struct {
 	CreatedAt        time.Time              `json:"createdAt"`
 	UpdatedAt        time.Time              `json:"updatedAt"`
 	Online           bool                   `json:"online"`
+	DNSResolve       int64                  `json:"dnsResolve"`
 	Latency          int64                  `json:"latency"`
 	PingTime         int64                  `json:"pingTime"`
 	Trace            bool                   `json:"trace"`
@@ -247,22 +249,27 @@ func (s *Service) CheckICMP() {
 		return
 	}
 	p.AddIPAddr(ra)
+	sucess := false
 	p.OnRecv = func(addr *net.IPAddr, rtt time.Duration) {
 		s.Latency = rtt.Milliseconds()
 		s.PingTime = rtt.Milliseconds()
-		s.Success()
+		sucess = true
 	}
 	p.OnIdle = func() {
-		s.Latency = -1
-		s.PingTime = -1
-		s.Logger.Debug("Reachmed max ICMP idle timeout")
-		s.Failure("Reachmed max ICMP idle timeout")
+		return
 	}
 	err = p.Run()
 	if err != nil {
 		s.Logger.Debugf("Issue running ICMP to service %s, %v, %v", s.Name, s.Address, err)
 		s.Failure(fmt.Sprintf("Issue running ICMP to service %v, %v", s.Address, err))
 		return
+	}
+	if sucess {
+		s.Success()
+	} else {
+		s.Latency = -1
+		s.PingTime = -1
+		s.Failure("Reachmed max ICMP idle timeout")
 	}
 	s.LastResponse = ""
 }
@@ -274,7 +281,8 @@ func (s *Service) CheckNet() {
 		s.Failure(fmt.Sprintf("Could not get IP address for TCP service %v, %v", s.Address, err))
 		return
 	}
-	s.PingTime = dnsLookup
+	s.DNSResolve = dnsLookup
+	s.PingTime = s.ping()
 	t1 := time.Now()
 	domain := fmt.Sprintf("%v", s.Address)
 	if s.Port != 0 {
@@ -305,7 +313,8 @@ func (s *Service) CheckHTTP() {
 		s.Failure(fmt.Sprintf("Could not get IP address for domain %v, %v", s.Address, err))
 		return
 	}
-	s.PingTime = dnsLookup
+	s.DNSResolve = dnsLookup
+	s.PingTime = s.ping()
 	t1 := time.Now()
 
 	timeout := time.Duration(s.Timeout) * time.Second
@@ -313,9 +322,9 @@ func (s *Service) CheckHTTP() {
 	var res *http.Response
 
 	if s.Method == "POST" {
-		content, res, err = HttpRequest(s.Address, s.Method, "application/json", s.Headers, bytes.NewBuffer([]byte(s.PostData)), timeout, s.VerifySSL)
+		content, res, err = HttpRequest(s.Address, s.ResolveTo, s.Method, "application/json", s.Headers, bytes.NewBuffer([]byte(s.PostData)), timeout, s.VerifySSL)
 	} else {
-		content, res, err = HttpRequest(s.Address, s.Method, nil, s.Headers, nil, timeout, s.VerifySSL)
+		content, res, err = HttpRequest(s.Address, s.ResolveTo, s.Method, nil, s.Headers, nil, timeout, s.VerifySSL)
 	}
 	if err != nil {
 		s.Failure(fmt.Sprintf("HTTP Error %v", err))
@@ -410,4 +419,44 @@ func (s *Service) LinearJitterBackoff() {
 	jitter := rand.Float64() * float64(s.RetryMaxInterval-s.RetryMinInterval)
 	jitterMin := int64(jitter) + int64(s.RetryMinInterval)
 	s.SleepDuration = Duration(time.Duration(jitterMin * int64(s.RetryAttempts)))
+}
+
+// ping will send a ICMP ping packet to the service and resturns response time in milliseconds
+func (s *Service) ping() int64 {
+	p := fastping.NewPinger()
+	p.MaxRTT = s.Timeout.Duration()
+	ips := s.ips()
+	if len(ips) < 1 {
+		return -1
+	}
+	resolveIP := "ip4:icmp"
+	if isIPv6(ips[0].String()) {
+		resolveIP = "ip6:icmp"
+	}
+	ra, err := net.ResolveIPAddr(resolveIP, ips[0].String())
+	if err != nil {
+		s.Logger.Warnf("Could not send ICMP to service %v, %v", s.Address, err)
+		s.Failure(fmt.Sprintf("Could not send ICMP to service %v, %v", s.Address, err))
+		return -1
+	}
+	p.AddIPAddr(ra)
+	pingTime := int64(0)
+	success := false
+	p.OnRecv = func(addr *net.IPAddr, rtt time.Duration) {
+		pingTime = rtt.Milliseconds()
+		success = true
+	}
+	p.OnIdle = func() {
+		return
+	}
+	err = p.Run()
+	if err != nil {
+		s.Logger.Warnf("Issue running ICMP to service %s, %v, %v", s.Name, s.Address, err)
+		s.Failure(fmt.Sprintf("Issue running ICMP to service %v, %v", s.Address, err))
+		return -1
+	}
+	if success {
+		return pingTime
+	}
+	return -1
 }

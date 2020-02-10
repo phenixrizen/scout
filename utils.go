@@ -19,7 +19,7 @@ import (
 //  body - The body or form data to send with HTTP request
 //  timeout - Specific duration to timeout on. time.Duration(30 * time.Seconds)
 //  You can use a HTTP Proxy if you HTTP_PROXY environment variable
-func HttpRequest(url, method string, content interface{}, headers []string, body io.Reader, timeout time.Duration, verifySSL bool) ([]byte, *http.Response, error) {
+func HttpRequest(url, resolveTo, method string, content interface{}, headers []string, body io.Reader, timeout time.Duration, verifySSL bool) ([]byte, *http.Response, error) {
 	var err error
 	var req *http.Request
 	if req, err = http.NewRequest(method, url, body); err != nil {
@@ -61,8 +61,12 @@ func HttpRequest(url, method string, content interface{}, headers []string, body
 		TLSHandshakeTimeout:   timeout,
 		Proxy:                 http.ProxyFromEnvironment,
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			// redirect all connections to host specified in url
-			addr = strings.Split(req.URL.Host, ":")[0] + addr[strings.LastIndex(addr, ":"):]
+			if resolveTo != "" {
+				addr = resolveTo
+			} else {
+				// redirect all connections to host specified in url
+				addr = strings.Split(req.URL.Host, ":")[0] + addr[strings.LastIndex(addr, ":"):]
+			}
 			return dialer.DialContext(ctx, network, addr)
 		},
 	}
