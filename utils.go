@@ -13,6 +13,7 @@ import (
 
 // HttpRequest is a global function to send a HTTP request
 //  url - The URL for HTTP request
+//  resolveTo - The ip:port of where to resolve to
 //  method - GET, POST, DELETE, PATCH
 //  content - The HTTP request content type (text/plain, application/json, or nil)
 //  headers - An array of Headers to be sent (KEY=VALUE) []string{"Authentication=12345", ...}
@@ -25,7 +26,8 @@ func HttpRequest(url, resolveTo, method string, content interface{}, headers []s
 	if req, err = http.NewRequest(method, url, body); err != nil {
 		return nil, nil, err
 	}
-	req.Header.Set("User-Agent", "Statping")
+	http.U
+	req.Header.Set("User-Agent", "phenixrizen-scout")
 	if content != nil {
 		req.Header.Set("Content-Type", content.(string))
 	}
