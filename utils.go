@@ -1,6 +1,7 @@
 package scout
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"io"
@@ -81,5 +82,6 @@ func HttpRequest(url, resolveTo, method string, content interface{}, headers []s
 	}
 	defer resp.Body.Close()
 	contents, err := ioutil.ReadAll(resp.Body)
+	resp.Body = ioutil.NopCloser(bytes.NewBuffer(contents))
 	return contents, resp, err
 }
