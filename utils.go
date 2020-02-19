@@ -26,7 +26,6 @@ func HttpRequest(url, resolveTo, method string, content interface{}, headers []s
 	if req, err = http.NewRequest(method, url, body); err != nil {
 		return nil, nil, err
 	}
-	http.U
 	req.Header.Set("User-Agent", "phenixrizen-scout")
 	if content != nil {
 		req.Header.Set("Content-Type", content.(string))
