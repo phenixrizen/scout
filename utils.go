@@ -87,7 +87,7 @@ func HttpRequest(ctx context.Context, url, resolveTo, method string, content int
 	}
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
 
-	req.Header.Set("User-Agent", "netlify-scout")
+	req.Header.Set("User-Agent", "phenixrizen-scout")
 	if content != nil {
 		req.Header.Set("Content-Type", content.(string))
 	}
