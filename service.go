@@ -2,6 +2,7 @@ package scout
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,10 +15,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	traceroute "github.com/phenixrizen/go-traceroute"
 	"github.com/sirupsen/logrus"
 	fastping "github.com/tatsushid/go-fastping"
-
-	traceroute "github.com/phenixrizen/go-traceroute"
 )
 
 // Duration is a custom type to use for human readable durations in JSON/YAML
@@ -75,8 +75,8 @@ type Service struct {
 	UpdatedAt        time.Time              `json:"updatedAt"`
 	Online           bool                   `json:"online"`
 	DNSResolve       int64                  `json:"dnsResolve"`
-	Latency          int64                  `json:"latency"`
-	PingTime         int64                  `json:"pingTime"`
+	RequestLatency   int64                  `json:"requestLatency"`
+	NetworkLatency   int64                  `json:"networkLatency"`
 	Trace            bool                   `json:"trace"`
 	TraceData        []traceroute.TraceData `json:"traceData,omitempty"`
 	Retry            bool                   `json:"retry"`
@@ -100,6 +100,12 @@ func (s *Service) Initialize() {
 	if s.CreatedAt.IsZero() {
 		s.CreatedAt = time.Now().UTC()
 		s.UpdatedAt = time.Now().UTC()
+	}
+	if s.Logger == nil {
+		s.Logger = logrus.New()
+	}
+	if s.Responses == nil {
+		s.Responses = make(chan interface{})
 	}
 }
 
@@ -147,6 +153,8 @@ func (s *Service) Scout() {
 	}
 	s.Start()
 	s.Checkpoint = time.Now().UTC()
+	// Go check now
+	s.Check()
 	s.SleepDuration = s.Interval
 ScoutLoop:
 	for {
@@ -209,7 +217,6 @@ func (s *Service) ips() []net.IP {
 		}
 		return ips
 	}
-	return nil
 }
 
 // DNSCheck will check the domain name and return a int64 representing the milliseconds it took to resolve DNS
@@ -251,8 +258,7 @@ func (s *Service) CheckICMP() {
 	p.AddIPAddr(ra)
 	sucess := false
 	p.OnRecv = func(addr *net.IPAddr, rtt time.Duration) {
-		s.Latency = rtt.Milliseconds()
-		s.PingTime = rtt.Milliseconds()
+		s.NetworkLatency = rtt.Milliseconds()
 		sucess = true
 	}
 	p.OnIdle = func() {
@@ -267,8 +273,7 @@ func (s *Service) CheckICMP() {
 	if sucess {
 		s.Success()
 	} else {
-		s.Latency = -1
-		s.PingTime = -1
+		s.NetworkLatency = -1
 		s.Failure("Reachmed max ICMP idle timeout")
 	}
 	s.LastResponse = ""
@@ -282,7 +287,7 @@ func (s *Service) CheckNet() {
 		return
 	}
 	s.DNSResolve = dnsLookup
-	s.PingTime = s.ping()
+	s.NetworkLatency = s.ping()
 	t1 := time.Now()
 	domain := fmt.Sprintf("%v", s.Address)
 	if s.Port != 0 {
@@ -301,7 +306,7 @@ func (s *Service) CheckNet() {
 		return
 	}
 	t2 := time.Now()
-	s.Latency = t2.Sub(t1).Milliseconds()
+	s.RequestLatency = t2.Sub(t1).Milliseconds()
 	s.LastResponse = ""
 	s.Success()
 }
@@ -314,24 +319,24 @@ func (s *Service) CheckHTTP() {
 		return
 	}
 	s.DNSResolve = dnsLookup
-	s.PingTime = s.ping()
-	t1 := time.Now()
 
 	timeout := time.Duration(s.Timeout) * time.Second
 	var content []byte
 	var res *http.Response
+	var metrics *HttpRequestMetrics
 
 	if s.Method == "POST" {
-		content, res, err = HttpRequest(s.Address, s.ResolveTo, s.Method, "application/json", s.Headers, bytes.NewBuffer([]byte(s.PostData)), timeout, s.VerifySSL)
+		content, res, metrics, err = HttpRequest(context.Background(), s.Address, s.ResolveTo, s.Method, "application/json", s.Headers, bytes.NewBuffer([]byte(s.PostData)), timeout, s.VerifySSL)
 	} else {
-		content, res, err = HttpRequest(s.Address, s.ResolveTo, s.Method, nil, s.Headers, nil, timeout, s.VerifySSL)
+		content, res, metrics, err = HttpRequest(context.Background(), s.Address, s.ResolveTo, s.Method, nil, s.Headers, nil, timeout, s.VerifySSL)
 	}
 	if err != nil {
 		s.Failure(fmt.Sprintf("HTTP Error %v", err))
 		return
 	}
-	t2 := time.Now()
-	s.Latency = t2.Sub(t1).Milliseconds()
+	s.Logger.Infof("Metrics: %+v", metrics)
+	s.NetworkLatency = metrics.NetworkLatency()
+	s.RequestLatency = metrics.RequestLatency()
 	s.LastResponse = string(content)
 	s.LastStatusCode = res.StatusCode
 
@@ -341,15 +346,18 @@ func (s *Service) CheckHTTP() {
 			s.Logger.Warnln(fmt.Sprintf("Service %v expected: %v to match %v", s.Name, string(content), s.Expected))
 		}
 		if !match {
+			s.Logger.Warningln(fmt.Sprintf("HTTP Response Body did not match '%v'", s.Expected))
 			s.Failure(fmt.Sprintf("HTTP Response Body did not match '%v'", s.Expected))
 			return
 		}
 	}
 	if s.ExpectedStatus != res.StatusCode {
+		s.Logger.Warningln(fmt.Sprintf("HTTP Status Code %v did not match %v", res.StatusCode, s.ExpectedStatus))
 		s.Failure(fmt.Sprintf("HTTP Status Code %v did not match %v", res.StatusCode, s.ExpectedStatus))
 		return
 	}
 
+	s.Logger.Infoln("Service success")
 	s.Success()
 }
 
@@ -358,10 +366,10 @@ func (s *Service) Success() {
 	s.LastOnline = time.Now().UTC()
 	s.RetryAttempts = 0
 	suc := ServiceSuccess{
-		Service:   s.ID,
-		Latency:   s.Latency,
-		PingTime:  s.PingTime,
-		CreatedAt: time.Now().UTC(),
+		Service:        s.ID,
+		RequestLatency: s.RequestLatency,
+		NetworkLatency: s.NetworkLatency,
+		CreatedAt:      time.Now().UTC(),
 	}
 	s.Online = true
 	s.Responses <- suc
@@ -377,7 +385,7 @@ func (s *Service) Failure(issue string) {
 	fail := ServiceFailure{
 		Service:          s.ID,
 		Issue:            issue,
-		PingTime:         s.PingTime,
+		NetworkLatency:   s.NetworkLatency,
 		RetriesExhausted: exhausted,
 		CreatedAt:        time.Now().UTC(),
 		ErrorCode:        s.LastStatusCode,

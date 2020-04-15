@@ -20,16 +20,16 @@ type Scout struct {
 }
 
 type ServiceSuccess struct {
-	Service   uuid.UUID `json:"service"`
-	Latency   int64     `json:"latency"`
-	PingTime  int64     `json:"pingTime"`
-	CreatedAt time.Time `json:"createdAt"`
+	Service        uuid.UUID `json:"service"`
+	RequestLatency int64     `json:"requestLatency"`
+	NetworkLatency int64     `json:"networkLatency"`
+	CreatedAt      time.Time `json:"createdAt"`
 }
 
 type ServiceFailure struct {
 	Service          uuid.UUID              `json:"service"`
 	Issue            string                 `json:"issue"`
-	PingTime         int64                  `json:"pingTime"`
+	NetworkLatency   int64                  `json:"networkLatency"`
 	TraceData        []traceroute.TraceData `json:"traceData,omitempty"`
 	RetriesExhausted bool                   `json:"retiresExhausted,omitempty`
 	CreatedAt        time.Time              `json:"createdAt"`
