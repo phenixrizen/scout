@@ -156,3 +156,15 @@ func (m *HttpRequestMetrics) NetworkLatency() int64 {
 func (m *HttpRequestMetrics) RequestLatency() int64 {
 	return time.Unix(0, m.GotResponse).Sub(time.Unix(0, m.GetConn)).Milliseconds()
 }
+
+// NetworkLatencyDuration returns the network connection latency as a Duration
+func (m *HttpRequestMetrics) NetworkLatencyDuration() time.Duration {
+	n := time.Unix(0, m.ConnectDone).Sub(time.Unix(0, m.GetConn)).Nanoseconds()
+	return time.Duration(n) * time.Nanosecond
+}
+
+// RequestLatencyDuration returns the request latency as a Duration
+func (m *HttpRequestMetrics) RequestLatencyDuration() time.Duration {
+	n := time.Unix(0, m.GotResponse).Sub(time.Unix(0, m.GetConn)).Nanoseconds()
+	return time.Duration(n) * time.Nanosecond
+}
