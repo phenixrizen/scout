@@ -31,7 +31,7 @@ type ServiceFailure struct {
 	Issue            string                 `json:"issue"`
 	NetworkLatency   int64                  `json:"networkLatency"`
 	TraceData        []traceroute.TraceData `json:"traceData,omitempty"`
-	RetriesExhausted bool                   `json:"retiresExhausted,omitempty`
+	RetriesExhausted bool                   `json:"retiresExhausted,omitempty"`
 	CreatedAt        time.Time              `json:"createdAt"`
 	ErrorCode        int                    `json:"errorCode,omitempty"`
 }

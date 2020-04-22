@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-type HttpRequestMetrics struct {
+type HTTPRequestMetrics struct {
 	GetConn              int64
 	GotConn              int64
 	GotFirstResponseByte int64
@@ -29,20 +29,21 @@ type HttpRequestMetrics struct {
 	GotResponse          int64
 }
 
-// HttpRequest is a global function to send a HTTP request
+// HTTPRequest is a global function to send a HTTP request
 //  ctx - Context to be used in request
 //  url - The URL for HTTP request
 //  resolveTo - The ip:port of where to resolve to
 //  method - GET, POST, DELETE, PATCH
-//  content - The HTTP request content type (text/plain, application/json, or nil)
-//  headers - An array of Headers to be sent (KEY=VALUE) []string{"Authentication=12345", ...}
+//  contentType - The HTTP request content type (text/plain, application/json... or empty string)
+//  headers - Headers to be used for the request
 //  body - The body or form data to send with HTTP request
 //  timeout - Specific duration to timeout on. time.Duration(30 * time.Seconds)
+//  verifySSL - verify the SSL certificate
 //  You can use a HTTP Proxy if you HTTP_PROXY environment variable
-func HttpRequest(ctx context.Context, url, resolveTo, method string, content interface{}, headers []string, body io.Reader, timeout time.Duration, verifySSL bool) ([]byte, *http.Response, *HttpRequestMetrics, error) {
+func HTTPRequest(ctx context.Context, url, resolveTo, method string, contentType string, headers http.Header, body io.Reader, timeout time.Duration, verifySSL bool) ([]byte, *http.Response, *HTTPRequestMetrics, error) {
 	var err error
 	var req *http.Request
-	metrics := &HttpRequestMetrics{}
+	metrics := &HTTPRequestMetrics{}
 
 	if req, err = http.NewRequestWithContext(ctx, method, url, body); err != nil {
 		return nil, nil, nil, err
@@ -87,25 +88,17 @@ func HttpRequest(ctx context.Context, url, resolveTo, method string, content int
 	}
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
 
-	req.Header.Set("User-Agent", "phenixrizen-scout")
-	if content != nil {
-		req.Header.Set("Content-Type", content.(string))
-	}
-
-	verifyHost := req.URL.Hostname()
-	for _, h := range headers {
-		keyVal := strings.SplitN(h, "=", 2)
-		if len(keyVal) == 2 {
-			if keyVal[0] != "" && keyVal[1] != "" {
-				if strings.ToLower(keyVal[0]) == "host" {
-					req.Host = strings.TrimSpace(keyVal[1])
-					verifyHost = req.Host
-				} else {
-					req.Header.Set(keyVal[0], keyVal[1])
-				}
-			}
+	if headers != nil {
+		if headers.Get("User-Agent") == "" {
+			headers.Set("User-Agent", "phenixrizen-scout")
+		}
+		if contentType != "" {
+			headers.Set("Content-Type", contentType)
 		}
 	}
+
+	req.Header = headers
+
 	var resp *http.Response
 
 	dialer := &net.Dialer{
@@ -116,7 +109,7 @@ func HttpRequest(ctx context.Context, url, resolveTo, method string, content int
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: !verifySSL,
-			ServerName:         verifyHost,
+			ServerName:         req.URL.Hostname(),
 		},
 		DisableKeepAlives:     true,
 		ResponseHeaderTimeout: timeout,
@@ -148,23 +141,23 @@ func HttpRequest(ctx context.Context, url, resolveTo, method string, content int
 }
 
 // NetworkLatency returns the network connection latency in ms
-func (m *HttpRequestMetrics) NetworkLatency() int64 {
+func (m *HTTPRequestMetrics) NetworkLatency() int64 {
 	return time.Unix(0, m.ConnectDone).Sub(time.Unix(0, m.GetConn)).Milliseconds()
 }
 
 // RequestLatency returns the request latency in ms
-func (m *HttpRequestMetrics) RequestLatency() int64 {
+func (m *HTTPRequestMetrics) RequestLatency() int64 {
 	return time.Unix(0, m.GotResponse).Sub(time.Unix(0, m.GetConn)).Milliseconds()
 }
 
 // NetworkLatencyDuration returns the network connection latency as a Duration
-func (m *HttpRequestMetrics) NetworkLatencyDuration() time.Duration {
+func (m *HTTPRequestMetrics) NetworkLatencyDuration() time.Duration {
 	n := time.Unix(0, m.ConnectDone).Sub(time.Unix(0, m.GetConn)).Nanoseconds()
 	return time.Duration(n) * time.Nanosecond
 }
 
 // RequestLatencyDuration returns the request latency as a Duration
-func (m *HttpRequestMetrics) RequestLatencyDuration() time.Duration {
+func (m *HTTPRequestMetrics) RequestLatencyDuration() time.Duration {
 	n := time.Unix(0, m.GotResponse).Sub(time.Unix(0, m.GetConn)).Nanoseconds()
 	return time.Duration(n) * time.Nanosecond
 }

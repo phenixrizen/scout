@@ -70,7 +70,7 @@ type Service struct {
 	Port             int                    `json:"port"`
 	Timeout          Duration               `json:"timeout"`
 	VerifySSL        bool                   `json:"verifySSL"`
-	Headers          []string               `json:"headers"`
+	Headers          http.Header            `json:"headers"`
 	CreatedAt        time.Time              `json:"createdAt"`
 	UpdatedAt        time.Time              `json:"updatedAt"`
 	Online           bool                   `json:"online"`
@@ -261,9 +261,7 @@ func (s *Service) CheckICMP() {
 		s.NetworkLatency = rtt.Milliseconds()
 		sucess = true
 	}
-	p.OnIdle = func() {
-		return
-	}
+	p.OnIdle = func() {}
 	err = p.Run()
 	if err != nil {
 		s.Logger.Debugf("Issue running ICMP to service %s, %v, %v", s.Name, s.Address, err)
@@ -323,12 +321,12 @@ func (s *Service) CheckHTTP() {
 	timeout := time.Duration(s.Timeout) * time.Second
 	var content []byte
 	var res *http.Response
-	var metrics *HttpRequestMetrics
+	var metrics *HTTPRequestMetrics
 
 	if s.Method == "POST" {
-		content, res, metrics, err = HttpRequest(context.Background(), s.Address, s.ResolveTo, s.Method, "application/json", s.Headers, bytes.NewBuffer([]byte(s.PostData)), timeout, s.VerifySSL)
+		content, res, metrics, err = HTTPRequest(context.Background(), s.Address, s.ResolveTo, s.Method, "application/json", s.Headers, bytes.NewBuffer([]byte(s.PostData)), timeout, s.VerifySSL)
 	} else {
-		content, res, metrics, err = HttpRequest(context.Background(), s.Address, s.ResolveTo, s.Method, nil, s.Headers, nil, timeout, s.VerifySSL)
+		content, res, metrics, err = HTTPRequest(context.Background(), s.Address, s.ResolveTo, s.Method, "", s.Headers, nil, timeout, s.VerifySSL)
 	}
 	if err != nil {
 		s.Failure(fmt.Sprintf("HTTP Error %v", err))
@@ -454,9 +452,7 @@ func (s *Service) ping() int64 {
 		pingTime = rtt.Milliseconds()
 		success = true
 	}
-	p.OnIdle = func() {
-		return
-	}
+	p.OnIdle = func() {}
 	err = p.Run()
 	if err != nil {
 		s.Logger.Warnf("Issue running ICMP to service %s, %v, %v", s.Name, s.Address, err)

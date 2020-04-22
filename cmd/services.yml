@@ -8,16 +8,16 @@
   type: http
   timeout: 5s
 - id: 409455e9-c496-4907-8478-34cff2e7b131
-  name: Netlify
-  address: https://netlify.com
+  name: Nathan Rockhold Weebsite
+  address: https://www.nathanrockhold.com
   expected: ''
   expectedStatus: 200
   checkInterval: 3.2s
   type: http
   timeout: 5s
 - id: fe727692-bde3-4021-819b-1ceedad4aa27
-  name: Netlify
-  address: netlify.com
+  name: Google
+  address: google.com
   checkInterval: 1.5s
   type: icmp
   timeout: 150ms

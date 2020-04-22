@@ -31,7 +31,7 @@ func main() {
 	for {
 		time.Sleep(30 * time.Second)
 		for _, serv := range s.Services {
-			log.Infof("Service: %s, Address: %s, Type: %s, Online: %t, Last Online: %s, Last Status Code: %d, Latency: %.6fs, Ping Time: %.6fs", serv.Name, serv.Address, serv.Type, serv.Online, serv.LastOnline, serv.LastStatusCode, serv.RequestLatency, serv.NetworkLatency)
+			log.Infof("Service: %s, Address: %s, Type: %s, Online: %t, Last Online: %s, Last Status Code: %d, Latency: %dms, Ping Time: %dms", serv.Name, serv.Address, serv.Type, serv.Online, serv.LastOnline, serv.LastStatusCode, serv.RequestLatency, serv.NetworkLatency)
 		}
 	}
 }
