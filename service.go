@@ -326,7 +326,7 @@ func (s *Service) CheckHTTP() {
 	if s.Method == "POST" {
 		content, res, metrics, err = HTTPRequest(context.Background(), s.Address, s.ResolveTo, s.Method, "application/json", s.Headers, bytes.NewBuffer([]byte(s.PostData)), timeout, s.VerifySSL)
 	} else {
-		content, res, metrics, err = HTTPRequest(context.Background(), s.Address, s.ResolveTo, s.Method, "", s.Headers, nil, timeout, s.VerifySSL)
+		content, res, metrics, err = HTTPRequest(context.Background(), s.Address, s.ResolveTo, s.Method, nil, s.Headers, nil, timeout, s.VerifySSL)
 	}
 	if err != nil {
 		s.Failure(fmt.Sprintf("HTTP Error %v", err))

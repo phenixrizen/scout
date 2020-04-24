@@ -34,13 +34,13 @@ type HTTPRequestMetrics struct {
 //  url - The URL for HTTP request
 //  resolveTo - The ip:port of where to resolve to
 //  method - GET, POST, DELETE, PATCH
-//  contentType - The HTTP request content type (text/plain, application/json... or empty string)
+//  contentType - The HTTP request content type (text/plain, application/json, or nil)
 //  headers - Headers to be used for the request
 //  body - The body or form data to send with HTTP request
 //  timeout - Specific duration to timeout on. time.Duration(30 * time.Seconds)
 //  verifySSL - verify the SSL certificate
 //  You can use a HTTP Proxy if you HTTP_PROXY environment variable
-func HTTPRequest(ctx context.Context, url, resolveTo, method string, contentType string, headers http.Header, body io.Reader, timeout time.Duration, verifySSL bool) ([]byte, *http.Response, *HTTPRequestMetrics, error) {
+func HTTPRequest(ctx context.Context, url, resolveTo, method string, contentType interface{}, headers http.Header, body io.Reader, timeout time.Duration, verifySSL bool) ([]byte, *http.Response, *HTTPRequestMetrics, error) {
 	var err error
 	var req *http.Request
 	metrics := &HTTPRequestMetrics{}
@@ -92,8 +92,11 @@ func HTTPRequest(ctx context.Context, url, resolveTo, method string, contentType
 		if headers.Get("User-Agent") == "" {
 			headers.Set("User-Agent", "phenixrizen-scout")
 		}
-		if contentType != "" {
-			headers.Set("Content-Type", contentType)
+		if contentType != nil {
+			ct, ok := contentType.(string)
+			if ok {
+				headers.Set("Content-Type", ct)
+			}
 		}
 	}
 
